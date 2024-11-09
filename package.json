@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no src/__tests__ specified\" && exit 1"
+    "test": "echo \"Error: no src/__tests__ specified\" && exit 1",
+    "lint": "eslint 'src/**/*.{js,ts}'",
+    "lint:fix": "eslint 'src/**/*.{js,ts}' --fix",
+    "format": "prettier --write 'src/**/*.{js,ts,json,css,md}'"
   },
   "keywords": [],
   "author": "j.austinmiles@outlook.com",
@@ -21,5 +24,16 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3",
     "ynab": "^2.6.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.13.0",
+    "@typescript-eslint/parser": "^8.13.0",
+    "eslint": "^9.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3"
   }
 }
