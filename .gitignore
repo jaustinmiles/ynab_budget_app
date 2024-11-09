@@ -3,4 +3,5 @@
 dist/
 node_modules/
 src/configs/
-budgets.xlsx/
+budgets.xlsx
+api_cache.db
