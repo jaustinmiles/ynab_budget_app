@@ -20,6 +20,14 @@ export type YnabCategoryGroupMap = {
   };
 };
 
+export interface IExcelColumnHeader<T> {
+  name: string;
+  dataKey: string;
+  dataType: string | number;
+  hidden?: boolean;
+  transformFunc?: (item: T) => T;
+}
+
 export interface IExcelColumn<T> {
   ref: string;
   columnNumber: number;

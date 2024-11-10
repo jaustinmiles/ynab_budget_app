@@ -1,12 +1,15 @@
 import ExcelJS from 'exceljs';
+import * as ynab from 'ynab';
 import {
   ICategories,
   ICategoryMap,
   IExcelColumn,
+  IExcelColumnHeader,
   IExcelTable,
 } from './types/ynabTypes';
 import { getBudgetCategoriesInMonth, readCategoryGroups } from './ynabService';
 import budgetConfigs from '../src/configs/budgets.json';
+import { Category } from 'ynab';
 
 function getExcelRef(
   worksheet: ExcelJS.Worksheet,
@@ -14,6 +17,101 @@ function getExcelRef(
   row: number,
 ) {
   return `${worksheet.getColumn(startColumn).letter}${row}`;
+}
+
+function getColumnFromHeaderInfo<T>(
+  categories: Array<Category>,
+  columnHeader: IExcelColumnHeader<T>,
+  columnIndex: number,
+  worksheet: ExcelJS.Worksheet,
+): IExcelColumn<T> {
+  const rows = categories.map((category) => {
+    const data = (category as never)[columnHeader.dataKey] as T;
+    if (columnHeader.transformFunc) {
+      return columnHeader.transformFunc(data);
+    }
+    return data;
+  });
+  const ref = getExcelRef(worksheet, columnIndex, 1);
+  return {
+    ref: ref,
+    columnNumber: columnIndex,
+    name: columnHeader.name,
+    data: rows,
+    hidden: false,
+  };
+}
+
+function getColumnsFromHeaderInfo(
+  categories: Array<ynab.Category>,
+  columnHeaders: (IExcelColumnHeader<string> | IExcelColumnHeader<number>)[],
+  columnIndex: number,
+  worksheet: ExcelJS.Worksheet,
+) {
+  const columns: (IExcelColumn<number> | IExcelColumn<string>)[] = [];
+  const filteredHeaders = columnHeaders.filter((col) => !col.hidden);
+  for (let i = 0; i < filteredHeaders.length; i++) {
+    const header = filteredHeaders[i];
+    if (header.dataType === 'string')
+      columns.push(
+        getColumnFromHeaderInfo(
+          categories,
+          header as IExcelColumnHeader<string>,
+          columnIndex + i,
+          worksheet,
+        ),
+      );
+    else
+      columns.push(
+        getColumnFromHeaderInfo(
+          categories,
+          header as IExcelColumnHeader<number>,
+          columnIndex + i,
+          worksheet,
+        ),
+      );
+  }
+  return columns;
+}
+
+function addTotalsTable(
+  excelTables: IExcelTable[],
+  worksheet: ExcelJS.Worksheet,
+  startColumn: number,
+) {
+  const totals: Array<Array<unknown>> = [];
+  for (const excelTable of excelTables) {
+    const activityColumn = excelTable.data[1];
+
+    const lastColumnCellRef = getExcelRef(
+      worksheet,
+      activityColumn.columnNumber,
+      activityColumn.data.length + 1,
+    );
+    totals.push([
+      excelTable.name,
+      {
+        formula: `SUM(${activityColumn.ref}:${lastColumnCellRef})`,
+      },
+    ]);
+  }
+
+  const totalsColumns = [
+    { name: 'Category', filterButton: true },
+    { name: 'Total', filterButton: true },
+  ];
+  const totalsRef = getExcelRef(worksheet, startColumn, 1);
+  const totalsTable = worksheet.addTable({
+    ref: totalsRef,
+    name: 'Totals',
+    columns: totalsColumns,
+    rows: totals,
+    headerRow: true,
+  });
+  totalsTable.style = {
+    showRowStripes: true,
+    showColumnStripes: true,
+  };
 }
 
 export async function writeBudgetsToExcel(budgets: ICategoryMap) {
@@ -35,45 +133,48 @@ export async function writeBudgetsToExcel(budgets: ICategoryMap) {
     );
     let startColumn = 1;
     const excelTables: IExcelTable[] = [];
+    const categoryHeader: IExcelColumnHeader<string> = {
+      name: 'Category',
+      dataKey: 'name',
+      dataType: 'string',
+      hidden: false,
+    };
+    const activityHeader: IExcelColumnHeader<number> = {
+      name: 'Activity',
+      dataKey: 'activity',
+      dataType: 'number',
+      hidden: false,
+      transformFunc: (item: number) => {
+        return item / 1000;
+      },
+    };
+    const categoryIdHeader: IExcelColumnHeader<string> = {
+      name: 'CategoryId',
+      dataKey: 'id',
+      dataType: 'string',
+      hidden: true,
+    };
+
+    const columnHeaders: (
+      | IExcelColumnHeader<string>
+      | IExcelColumnHeader<number>
+    )[] = [categoryHeader, activityHeader, categoryIdHeader];
     for (const [
       group,
       categories,
     ] of groupedCategories.budgetCategories.entries()) {
-      // TODO: this is basically copy and paste, needs refactor
       const ref = getExcelRef(worksheet, startColumn, 1);
-      const categoryRows = categories.map((category) => category.name);
-      const categoryColumn: IExcelColumn<string> = {
-        ref: ref,
-        columnNumber: startColumn,
-        name: 'Category',
-        data: categoryRows,
-      };
-
-      const ref2 = getExcelRef(worksheet, startColumn + 1, 1);
-      const activityRows = categories.map(
-        (category) => category.activity / 1000,
+      const excelColumns = getColumnsFromHeaderInfo(
+        categories,
+        columnHeaders,
+        startColumn,
+        worksheet,
       );
-      const activityColumn: IExcelColumn<number> = {
-        ref: ref2,
-        columnNumber: startColumn + 1,
-        name: 'Activity',
-        data: activityRows,
-      };
-
-      const ref3 = getExcelRef(worksheet, startColumn + 2, 1);
-      const categoryIdRows = categories.map((category) => category.id);
-      const categoryIdColumn: IExcelColumn<string> = {
-        ref: ref3,
-        columnNumber: startColumn + 2,
-        name: 'CategoryId',
-        data: categoryIdRows,
-        hidden: true,
-      };
 
       const excelTable: IExcelTable = {
         ref: ref,
         name: group,
-        data: [categoryColumn, activityColumn, categoryIdColumn],
+        data: excelColumns,
       };
 
       excelTables.push(excelTable);
@@ -122,39 +223,7 @@ export async function writeBudgetsToExcel(budgets: ICategoryMap) {
       };
     }
     // add totals cells
-    const totals: Array<Array<unknown>> = [];
-    for (const excelTable of excelTables) {
-      const activityColumn = excelTable.data[1];
-
-      const lastColumnCellRef = getExcelRef(
-        worksheet,
-        activityColumn.columnNumber,
-        activityColumn.data.length + 1,
-      );
-      totals.push([
-        excelTable.name,
-        {
-          formula: `SUM(${activityColumn.ref}:${lastColumnCellRef})`,
-        },
-      ]);
-    }
-
-    const totalsColumns = [
-      { name: 'Category', filterButton: true },
-      { name: 'Total', filterButton: true },
-    ];
-    const totalsRef = getExcelRef(worksheet, startColumn, 1);
-    const totalsTable = worksheet.addTable({
-      ref: totalsRef,
-      name: 'Totals',
-      columns: totalsColumns,
-      rows: totals,
-      headerRow: true,
-    });
-    totalsTable.style = {
-      showRowStripes: true,
-      showColumnStripes: true,
-    };
+    addTotalsTable(excelTables, worksheet, startColumn);
   }
 
   // Save workbook to disk
