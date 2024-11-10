@@ -2,6 +2,7 @@ import * as ynab from 'ynab';
 
 export interface ICategoryMap {
   budgetCategories: Map<string, Array<ynab.Category>>;
+  budgetTransactions: Map<string, Array<ynab.HybridTransaction>>;
 }
 
 export interface ICategories {

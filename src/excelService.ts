@@ -114,8 +114,41 @@ function addTotalsTable(
   };
 }
 
+export function writeTransactionsToExcel(
+  budgets: ICategoryMap,
+  workbook: ExcelJS.Workbook,
+) {
+  for (const [key, transactions] of budgets.budgetTransactions) {
+    const worksheet = workbook.addWorksheet(
+      `${key.substring(0, 10)}_transactions`,
+    );
+    const columns = [
+      {
+        name: 'payee',
+        filterButton: true,
+      },
+      {
+        name: 'amount',
+        filterButton: true,
+      },
+    ];
+    const rows = transactions.map((transaction) => {
+      return [transaction.payee_name, transaction.amount / 1000];
+    });
+    const ref = getExcelRef(worksheet, 1, 1);
+    worksheet.addTable({
+      name: `${key.substring(0, 10)}_transactions`,
+      columns: columns,
+      rows: rows,
+      headerRow: true,
+      ref: ref,
+    });
+  }
+}
+
 export async function writeBudgetsToExcel(budgets: ICategoryMap) {
   const workbook = new ExcelJS.Workbook();
+  writeTransactionsToExcel(budgets, workbook);
   for (const [key, budget] of budgets.budgetCategories) {
     const worksheet = workbook.addWorksheet(key);
     const categories: ICategories = {

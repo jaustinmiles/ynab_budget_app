@@ -14,16 +14,19 @@ import {
 
 export async function getBudgets(budgetIds: string[]): Promise<ICategoryMap> {
   const budgets: Array<ynab.BudgetDetail> = [];
+  const budgetMap: ICategoryMap = {
+    budgetCategories: new Map(),
+    budgetTransactions: new Map(),
+  };
   for (const budgetId of budgetIds) {
     const budget = (await getCachedYnabResponse(
       [budgetId],
       CacheFunctions.GET_BUDGET_BY_ID,
     )) as ynab.BudgetDetailResponse;
     budgets.push(budget.data.budget);
+    const transactions = await getBudgetTransactionsInMonth(budgetId);
+    budgetMap.budgetTransactions.set(budgetId, transactions.data.transactions);
   }
-  const budgetMap: ICategoryMap = {
-    budgetCategories: new Map(),
-  };
   for (const budget of budgets) {
     if (budget.categories) {
       budgetMap.budgetCategories.set(budget.id, budget.categories);
@@ -45,6 +48,16 @@ export async function getBudgetCategoriesInMonth(
     monthlyCategories.push(monthlyCategory.data.category);
   }
   return monthlyCategories;
+}
+
+export async function getBudgetTransactionsInMonth(
+  budgetId: string,
+  month: string = 'current',
+) {
+  return (await getCachedYnabResponse(
+    [budgetId, month],
+    CacheFunctions.GET_MONTH_TRANSACTION_BY_ID,
+  )) as ynab.HybridTransactionsResponse;
 }
 
 export function createYnabApi() {

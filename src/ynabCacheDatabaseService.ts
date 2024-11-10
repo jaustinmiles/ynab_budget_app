@@ -6,6 +6,7 @@ const sqlite3 = verbose();
 export enum CacheFunctions {
   GET_MONTH_CATEGORY_BY_ID,
   GET_BUDGET_BY_ID,
+  GET_MONTH_TRANSACTION_BY_ID,
 }
 
 export type DbCacheEntry = {
@@ -97,6 +98,14 @@ export async function getCachedYnabResponse(
                   params[2],
                 );
                 return resolve(category);
+              }
+              case CacheFunctions.GET_MONTH_TRANSACTION_BY_ID: {
+                const transactions =
+                  ynabApi.transactions.getTransactionsByMonth(
+                    params[0],
+                    params[1],
+                  );
+                return resolve(transactions);
               }
             }
           } catch (error) {
