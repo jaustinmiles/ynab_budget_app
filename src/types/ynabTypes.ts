@@ -19,3 +19,17 @@ export type YnabCategoryGroupMap = {
     [budgetId: string]: Array<string>;
   };
 };
+
+export interface IExcelColumn<T> {
+  ref: string;
+  columnNumber: number;
+  name: string;
+  data: Array<T>;
+  hidden?: boolean;
+}
+
+export interface IExcelTable {
+  ref: string;
+  name: string;
+  data: Array<IExcelColumn<unknown>>;
+}
