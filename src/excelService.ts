@@ -117,10 +117,11 @@ function addTotalsTable(
 export function writeTransactionsToExcel(
   budgets: ICategoryMap,
   workbook: ExcelJS.Workbook,
+  month: string,
 ) {
   for (const [key, transactions] of budgets.budgetTransactions) {
     const worksheet = workbook.addWorksheet(
-      `${key.substring(0, 10)}_transactions`,
+      `${key.substring(0, 10)}_transactions_${month}`,
     );
     const columns = [
       {
@@ -146,16 +147,22 @@ export function writeTransactionsToExcel(
   }
 }
 
-export async function writeBudgetsToExcel(budgets: ICategoryMap) {
-  const workbook = new ExcelJS.Workbook();
-  writeTransactionsToExcel(budgets, workbook);
+export async function writeBudgetsToExcel(
+  budgets: ICategoryMap,
+  month: string,
+  workbook: ExcelJS.Workbook,
+) {
+  writeTransactionsToExcel(budgets, workbook, month);
   for (const [key, budget] of budgets.budgetCategories) {
-    const worksheet = workbook.addWorksheet(key);
+    const worksheet = workbook.addWorksheet(`${key.substring(0, 5)}_${month}`);
     const categories: ICategories = {
       budgetId: key,
       budgetCategories: budget,
     };
-    const monthlyCategoriesArr = await getBudgetCategoriesInMonth(categories);
+    const monthlyCategoriesArr = await getBudgetCategoriesInMonth(
+      categories,
+      month,
+    );
     const monthlyCategories: ICategories = {
       budgetId: key,
       budgetCategories: monthlyCategoriesArr,
@@ -258,7 +265,4 @@ export async function writeBudgetsToExcel(budgets: ICategoryMap) {
     // add totals cells
     addTotalsTable(excelTables, worksheet, startColumn);
   }
-
-  // Save workbook to disk
-  await workbook.xlsx.writeFile('budgets.xlsx');
 }

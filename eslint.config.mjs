@@ -1,48 +1,54 @@
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
-import prettier from "eslint-plugin-prettier";
-import globals from "globals";
-import tsParser from "@typescript-eslint/parser";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
+import typescriptEslint from '@typescript-eslint/eslint-plugin';
+import prettier from 'eslint-plugin-prettier';
+import globals from 'globals';
+import tsParser from '@typescript-eslint/parser';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import js from '@eslint/js';
+import { FlatCompat } from '@eslint/eslintrc';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const compat = new FlatCompat({
-    baseDirectory: __dirname,
-    recommendedConfig: js.configs.recommended,
-    allConfig: js.configs.all
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+  allConfig: js.configs.all,
 });
 
-export default [...compat.extends(
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended",
-), {
+export default [
+  ...compat.extends(
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:prettier/recommended',
+  ),
+  {
     plugins: {
-        "@typescript-eslint": typescriptEslint,
-        prettier,
+      '@typescript-eslint': typescriptEslint,
+      prettier,
     },
 
     languageOptions: {
-        globals: {
-            ...globals.commonjs,
-        },
+      globals: {
+        ...globals.commonjs,
+      },
 
-        parser: tsParser,
-        ecmaVersion: 12,
-        sourceType: "module",
+      parser: tsParser,
+      ecmaVersion: 12,
+      sourceType: 'module',
     },
 
     rules: {
-        "prettier/prettier": "error",
-        quotes: ["error", "single"],
+      'prettier/prettier': 'error',
+      quotes: ['error', 'single'],
 
-        "@typescript-eslint/no-unused-vars": ["error", {
-            argsIgnorePattern: "^_",
-        }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+        },
+      ],
 
-        semi: ["error", "always"],
+      semi: ['error', 'always'],
     },
-}];
+  },
+];

@@ -12,7 +12,10 @@ import {
   getCachedYnabResponse,
 } from './ynabCacheDatabaseService';
 
-export async function getBudgets(budgetIds: string[]): Promise<ICategoryMap> {
+export async function getBudgets(
+  budgetIds: string[],
+  month: string,
+): Promise<ICategoryMap> {
   const budgets: Array<ynab.BudgetDetail> = [];
   const budgetMap: ICategoryMap = {
     budgetCategories: new Map(),
@@ -24,7 +27,7 @@ export async function getBudgets(budgetIds: string[]): Promise<ICategoryMap> {
       CacheFunctions.GET_BUDGET_BY_ID,
     )) as ynab.BudgetDetailResponse;
     budgets.push(budget.data.budget);
-    const transactions = await getBudgetTransactionsInMonth(budgetId);
+    const transactions = await getBudgetTransactionsInMonth(budgetId, month);
     budgetMap.budgetTransactions.set(budgetId, transactions.data.transactions);
   }
   for (const budget of budgets) {
